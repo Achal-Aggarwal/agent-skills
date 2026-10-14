@@ -65,7 +65,7 @@ const makeLock = (agents: AgentType[], global: boolean): SkillLockFile => ({
 })
 
 const createPorts = (locks: { local?: SkillLockFile; global?: SkillLockFile } = {}) => {
-  const virtualFs = new Map<string, string>()
+  const virtualFs = new Map<string, string | Uint8Array>()
   const dirs = new Set<string>([CACHE_DIR, `${CACHE_DIR}/skills`])
 
   if (locks.local) virtualFs.set('/project/.agents/.skill-lock.json', JSON.stringify(locks.local))
@@ -92,7 +92,7 @@ const createPorts = (locks: { local?: SkillLockFile; global?: SkillLockFile } = 
       if (found === undefined) throw new Error(`ENOENT: ${path}`)
       return found
     }),
-    writeFileSync: jest.fn((path: string, content: string) => void virtualFs.set(path, content)),
+    writeFileSync: jest.fn((path: string, content: string | Uint8Array) => void virtualFs.set(path, content)),
     readdirSync: jest.fn(() => []),
     // async half of the port: lockfile and installer services use these, not the *Sync variants
     readFile: jest.fn(async (path: string) => {
@@ -102,7 +102,9 @@ const createPorts = (locks: { local?: SkillLockFile; global?: SkillLockFile } = 
     }),
     writeFile: jest.fn(async (path: string, content: string) => void virtualFs.set(path, content)),
     appendFile: jest.fn(async (path: string, content: string) => {
-      virtualFs.set(path, (virtualFs.get(path) ?? '') + content)
+      const existing = virtualFs.get(path)
+      const base = typeof existing === 'string' ? existing : ''
+      virtualFs.set(path, base + content)
     }),
     mkdir: jest.fn(async (path: string) => void dirs.add(path)),
     rm: jest.fn(async (path: string) => {
@@ -132,7 +134,13 @@ const createPorts = (locks: { local?: SkillLockFile; global?: SkillLockFile } = 
     }
     const known = REGISTRY.skills.some((skill) => url.includes(skill.path))
     return known
-      ? { ok: true, status: 200, json: async () => REGISTRY, text: async () => SKILL_BODY }
+      ? {
+          ok: true,
+          status: 200,
+          json: async () => REGISTRY,
+          text: async () => SKILL_BODY,
+          bytes: async () => Buffer.from(SKILL_BODY),
+        }
       : { ok: false, status: 404, json: async () => REGISTRY, text: async () => '' }
   }
 
@@ -164,7 +172,7 @@ describe('updateSkills', () => {
 
     await updateSkills(ports, [SKILL])
 
-    expect(virtualFs.get(`${SKILL_CACHE}/SKILL.md`)).toBe(SKILL_BODY)
+    expect(Buffer.from(virtualFs.get(`${SKILL_CACHE}/SKILL.md`) as Uint8Array)).toEqual(Buffer.from(SKILL_BODY))
   })
 
   it('refreshes the cache even when no lockfile records the skill', async () => {
@@ -173,7 +181,7 @@ describe('updateSkills', () => {
     const results = await updateSkills(ports, [SKILL])
 
     expect(results).toEqual([])
-    expect(virtualFs.get(`${SKILL_CACHE}/SKILL.md`)).toBe(SKILL_BODY)
+    expect(Buffer.from(virtualFs.get(`${SKILL_CACHE}/SKILL.md`) as Uint8Array)).toEqual(Buffer.from(SKILL_BODY))
   })
 
   it('reinstalls for the agents recorded in the local lockfile', async () => {

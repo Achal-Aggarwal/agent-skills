@@ -63,19 +63,21 @@ export function registerPrepareTool(server: FastMCP, getIndexes: () => Indexes):
         return buildDryRunPreview(args.skill_name, getSkillStagingDir(args.skill_name, skill.contentHash), requested)
       }
 
-      let verified: Map<string, string>
+      let verified: Map<string, Uint8Array>
       try {
         const cdnRef = await resolveCdnRef()
         const skillsBaseUrl = buildSkillsBaseUrl(cdnRef)
         // why: verify the whole skill set before writing any of it to disk
-        verified = await fetchAndVerifySkillFiles(skill, skillsBaseUrl, (url) => ky.get(url).text())
+        verified = await fetchAndVerifySkillFiles(skill, skillsBaseUrl, async (url) => {
+          return new Uint8Array(await ky.get(url).arrayBuffer())
+        })
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         if (message.includes('Checksum mismatch')) throw new UserError(message)
         throw new UserError('CDN unavailable or skill integrity check failed. Try again shortly.')
       }
 
-      const toStage = new Map<string, string>()
+      const toStage = new Map<string, Uint8Array>()
       const missing: string[] = []
       for (const filePath of requested) {
         const content = verified.get(filePath)

@@ -27,7 +27,6 @@ type CachedSkillMeta = {
   downloadedAt: number
 }
 
-
 function getRegistryCachePath(ports: CorePorts): string {
   return join(getCacheDir(ports), REGISTRY_CACHE_FILENAME)
 }
@@ -98,7 +97,7 @@ async function getResolvedCdnRef(ports: CorePorts): Promise<string> {
  * Computes contentHash for an in-memory skill file set.
  * Must match packages/skills-catalog computeSkillHash (sorted path + bytes).
  */
-function computeSkillContentHash(files: ReadonlyMap<string, string | Buffer>): string {
+function computeSkillContentHash(files: ReadonlyMap<string, string | Uint8Array>): string {
   const hash = createHash('sha256')
   for (const file of [...files.keys()].sort()) {
     const content = files.get(file)
@@ -211,11 +210,7 @@ function pruneEmptyDirectories(ports: CorePorts, dir: string, root: string): voi
  * Keeps `.skill-meta.json`. Runs only after a successful download so a failed
  * refresh never deletes the previous cache.
  */
-function pruneOrphanedSkillCacheFiles(
-  ports: CorePorts,
-  skillCachePath: string,
-  keepFiles: readonly string[],
-): void {
+function pruneOrphanedSkillCacheFiles(ports: CorePorts, skillCachePath: string, keepFiles: readonly string[]): void {
   const keep = new Set<string>([...keepFiles, SKILL_META_FILE])
   const cachedFiles = collectCachedFiles(ports, skillCachePath, skillCachePath)
 
@@ -238,7 +233,7 @@ async function downloadSkillFile(
   skill: SkillMetadata,
   file: string,
   skillCachePath: string,
-): Promise<string | null> {
+): Promise<Uint8Array | null> {
   const filePath = join(skillCachePath, file)
 
   if (!isPathSafe(skillCachePath, filePath)) {
@@ -261,8 +256,9 @@ async function downloadSkillFile(
     throw new Error(`Failed to download ${file}: HTTP ${response.status}`)
   }
 
-  const content = await response.text()
-  ports.fs.writeFileSync(filePath, content, 'utf-8')
+  // why: text() replaces invalid UTF-8, so a JPEG no longer matches the registry content hash
+  const content = Buffer.from(await response.bytes())
+  ports.fs.writeFileSync(filePath, content)
   return content
 }
 
@@ -328,7 +324,7 @@ export async function downloadSkill(ports: CorePorts, skill: SkillMetadata): Pro
 
   try {
     const files = [...skill.files]
-    const downloadedContents = new Map<string, string>()
+    const downloadedContents = new Map<string, Uint8Array>()
 
     for (let index = 0; index < files.length; index += MAX_CONCURRENT_DOWNLOADS) {
       const batch = files.slice(index, index + MAX_CONCURRENT_DOWNLOADS)

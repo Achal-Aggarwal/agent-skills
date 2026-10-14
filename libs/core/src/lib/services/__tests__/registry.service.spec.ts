@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto'
+
 import { beforeEach, describe, expect, it, jest } from '@jest/globals'
 
 import type {
@@ -41,13 +43,19 @@ type TestPorts = {
   mkdirSyncMock: jest.MockedFunction<(path: string, options?: { recursive?: boolean }) => void>
   rmSyncMock: jest.MockedFunction<(path: string, options?: { recursive?: boolean; force?: boolean }) => void>
   readFileSyncMock: jest.MockedFunction<(path: string, encoding: string) => string>
-  writeFileSyncMock: jest.MockedFunction<(path: string, content: string, encoding: string) => void>
+  writeFileSyncMock: jest.MockedFunction<(path: string, content: string | Uint8Array, encoding?: string) => void>
   readdirSyncMock: jest.MockedFunction<(path: string, options?: { withFileTypes: true }) => DirEntry[]>
   getWithFallbackMock: jest.MockedFunction<
     (
       url: string,
       fallbackUrl?: string,
-    ) => Promise<{ ok: boolean; status: number; json(): Promise<unknown>; text(): Promise<string> }>
+    ) => Promise<{
+      ok: boolean
+      status: number
+      json(): Promise<unknown>
+      text(): Promise<string>
+      bytes?: () => Promise<Uint8Array>
+    }>
   >
   getEnvMock: jest.MockedFunction<(key: string) => string | undefined>
   getLatestVersionMock: jest.MockedFunction<(packageName: string) => Promise<string>>
@@ -59,20 +67,25 @@ const createPorts = (): TestPorts => {
   const mkdirSyncMock = jest.fn<(path: string, options?: { recursive?: boolean }) => void>()
   const readFileSyncMock = jest.fn<(path: string, encoding: string) => string>()
   const rmSyncMock = jest.fn<(path: string, options?: { recursive?: boolean; force?: boolean }) => void>()
-  const writeFileSyncMock = jest.fn<(path: string, content: string, encoding: string) => void>()
+  const writeFileSyncMock = jest.fn<(path: string, content: string | Uint8Array, encoding?: string) => void>()
   const readdirSyncMock = jest.fn<(path: string, options?: { withFileTypes: true }) => DirEntry[]>()
-  const getWithFallbackMock =
-    jest.fn<
-      (
-        url: string,
-        fallbackUrl?: string,
-      ) => Promise<{ ok: boolean; status: number; json(): Promise<unknown>; text(): Promise<string> }>
-    >()
+  const getWithFallbackMock = jest.fn<
+    (
+      url: string,
+      fallbackUrl?: string,
+    ) => Promise<{
+      ok: boolean
+      status: number
+      json(): Promise<unknown>
+      text(): Promise<string>
+      bytes?: () => Promise<Uint8Array>
+    }>
+  >()
   const getEnvMock = jest.fn<(key: string) => string | undefined>()
   const getLatestVersionMock = jest.fn<(packageName: string) => Promise<string>>()
   const loggerErrorMock = jest.fn<(message: string) => void>()
 
-  const virtualFs = new Map<string, string>()
+  const virtualFs = new Map<string, string | Uint8Array>()
 
   existsSyncMock.mockImplementation((path) => virtualFs.has(path) || path === '/home/tester/.cache/agent-skills')
   mkdirSyncMock.mockReturnValue(undefined)
@@ -311,6 +324,7 @@ describe('downloadSkill', () => {
       status: 200,
       json: async () => ({}),
       text: async () => SKILL_CONTENT,
+      bytes: async () => Buffer.from(SKILL_CONTENT),
     })
 
     const cachedPath = await downloadSkill(ports, registryFixture.skills[0])
@@ -318,8 +332,34 @@ describe('downloadSkill', () => {
     expect(cachedPath).toBe('/home/tester/.cache/agent-skills/skills/accessibility')
     expect(writeFileSyncMock).toHaveBeenCalledWith(
       '/home/tester/.cache/agent-skills/skills/accessibility/SKILL.md',
-      SKILL_CONTENT,
-      'utf-8',
+      Buffer.from(SKILL_CONTENT),
+    )
+  })
+
+  it('verifies binary skill files against the raw bytes, not a UTF-8 decode', async () => {
+    const { ports, getWithFallbackMock, writeFileSyncMock } = createPorts()
+    const jpeg = Uint8Array.from([0xff, 0xd8, 0xff, 0x00, 0xc0])
+    const contentHash = createHash('sha256').update('assets/docker/wallpaper.jpg').update(jpeg).digest('hex')
+
+    getWithFallbackMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+      text: async () => Buffer.from(jpeg).toString('utf8'),
+      bytes: async () => jpeg,
+    })
+
+    const cachedPath = await downloadSkill(ports, {
+      ...registryFixture.skills[0],
+      name: 'demo',
+      files: ['assets/docker/wallpaper.jpg'],
+      contentHash,
+    })
+
+    expect(cachedPath).toBe('/home/tester/.cache/agent-skills/skills/demo')
+    expect(writeFileSyncMock).toHaveBeenCalledWith(
+      '/home/tester/.cache/agent-skills/skills/demo/assets/docker/wallpaper.jpg',
+      Buffer.from(jpeg),
     )
   })
 
@@ -374,6 +414,7 @@ describe('downloadSkill', () => {
       status: 200,
       json: async () => ({}),
       text: async () => SKILL_CONTENT,
+      bytes: async () => Buffer.from(SKILL_CONTENT),
     })
 
     const cachedPath = await downloadSkill(ports, {
@@ -702,6 +743,7 @@ describe('cache management', () => {
       status: 200,
       json: async () => registryFixture,
       text: async () => SKILL_CONTENT,
+      bytes: async () => Buffer.from(SKILL_CONTENT),
     })
 
     const path = await ensureSkillDownloaded(ports, 'accessibility')
@@ -793,6 +835,7 @@ describe('cache management', () => {
       status: 200,
       json: async () => registryFixture,
       text: async () => SKILL_CONTENT,
+      bytes: async () => Buffer.from(SKILL_CONTENT),
     })
 
     const path = await forceDownloadSkill(ports, 'accessibility')

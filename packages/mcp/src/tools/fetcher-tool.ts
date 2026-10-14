@@ -3,7 +3,7 @@ import ky from 'ky'
 import { z } from 'zod'
 
 import { buildSkillsBaseUrl, resolveCdnRef } from '../cdn'
-import { fetchAndVerifySkillFiles } from '../integrity'
+import { decodeSkillText, fetchAndVerifySkillFiles } from '../integrity'
 import type { Indexes } from '../types'
 import { buildReferenceFilesOutput, getInvalidReferencePaths } from './core/fetcher'
 
@@ -34,9 +34,12 @@ export function registerFetcherTool(server: FastMCP, getIndexes: () => Indexes):
         const cdnRef = await resolveCdnRef()
         const skillsBaseUrl = buildSkillsBaseUrl(cdnRef)
         // why: verify the whole skill set before returning any reference bytes
-        const verified = await fetchAndVerifySkillFiles(skill, skillsBaseUrl, (url) => ky.get(url).text())
+        const verified = await fetchAndVerifySkillFiles(skill, skillsBaseUrl, async (url) => {
+          return new Uint8Array(await ky.get(url).arrayBuffer())
+        })
+        const asText = new Map([...verified].map(([filePath, bytes]) => [filePath, decodeSkillText(bytes)]))
 
-        return buildReferenceFilesOutput(args.file_paths, verified)
+        return buildReferenceFilesOutput(args.file_paths, asText)
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         if (message.includes('Checksum mismatch')) {

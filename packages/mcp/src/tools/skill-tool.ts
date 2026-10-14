@@ -3,7 +3,7 @@ import ky from 'ky'
 import { z } from 'zod'
 
 import { buildSkillsBaseUrl, resolveCdnRef } from '../cdn'
-import { fetchAndVerifySkillFiles } from '../integrity'
+import { decodeSkillText, fetchAndVerifySkillFiles } from '../integrity'
 import type { Indexes } from '../types'
 import { buildReadSkillOutput, getMainSkillFile, getReferenceFiles, stripFrontmatter } from './core/skill'
 
@@ -23,11 +23,13 @@ export function registerSkillTool(server: FastMCP, getIndexes: () => Indexes): v
       if (!skill) throw new UserError(`Skill '${args.skill_name}' not found. Use search_skills to find valid names.`)
       const mainFile = getMainSkillFile(skill, args.skill_name)
 
-      let verifiedFiles: Map<string, string>
+      let verifiedFiles: Map<string, Uint8Array>
       try {
         const cdnRef = await resolveCdnRef()
         const skillsBaseUrl = buildSkillsBaseUrl(cdnRef)
-        verifiedFiles = await fetchAndVerifySkillFiles(skill, skillsBaseUrl, (url) => ky.get(url).text())
+        verifiedFiles = await fetchAndVerifySkillFiles(skill, skillsBaseUrl, async (url) => {
+          return new Uint8Array(await ky.get(url).arrayBuffer())
+        })
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         if (message.includes('Checksum mismatch')) {
@@ -36,13 +38,13 @@ export function registerSkillTool(server: FastMCP, getIndexes: () => Indexes): v
         throw new UserError('CDN unavailable or skill integrity check failed. Try again shortly.')
       }
 
-      const mainContent = verifiedFiles.get(mainFile)
-      if (mainContent === undefined) {
+      const mainBytes = verifiedFiles.get(mainFile)
+      if (mainBytes === undefined) {
         throw new UserError(`Skill '${args.skill_name}' is missing ${mainFile} after integrity verification.`)
       }
 
       const referenceFiles = getReferenceFiles(skill)
-      return buildReadSkillOutput(stripFrontmatter(mainContent), referenceFiles)
+      return buildReadSkillOutput(stripFrontmatter(decodeSkillText(mainBytes)), referenceFiles)
     },
   })
 }
