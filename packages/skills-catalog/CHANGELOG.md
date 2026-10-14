@@ -1,3 +1,13 @@
+## 0.17.12 (2026-10-14)
+
+### 🩹 Fixes
+
+- **skills-catalog:** publish the English tlc-prd wording ([7f93bf3b1](https://github.com/tech-leads-club/agent-skills/commit/7f93bf3b1))
+
+### ❤️ Thank You
+
+- Waldemar Neto @waldemarnt
+
 ## 0.17.11 (2026-10-14)
 
 ### 🚀 Features
