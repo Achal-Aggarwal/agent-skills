@@ -1,3 +1,13 @@
+## 0.17.11 (2026-10-14)
+
+### 🚀 Features
+
+- **skills-catalog:** add tlc-prd skill ([ad039e00f](https://github.com/tech-leads-club/agent-skills/commit/ad039e00f))
+
+### ❤️ Thank You
+
+- Waldemar Neto @waldemarnt
+
 ## 0.17.10 (2026-10-14)
 
 ### 🚀 Features
