@@ -1,3 +1,13 @@
+## 0.17.10 (2026-10-14)
+
+### 🚀 Features
+
+- **skills-catalog:** add demo skill for recording feature videos ([e9b8a9b13](https://github.com/tech-leads-club/agent-skills/commit/e9b8a9b13))
+
+### ❤️ Thank You
+
+- William Calderipe @wcalderipe
+
 ## 0.17.9 (2026-09-18)
 
 ### 🚀 Features
