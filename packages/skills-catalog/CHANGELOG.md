@@ -1,3 +1,17 @@
+## 0.17.13 (2026-10-16)
+
+### 🚀 Features
+
+- **skills-catalog:** bump tlc-spec-lean to 1.2.0 ([a25a9ebbb](https://github.com/tech-leads-club/agent-skills/commit/a25a9ebbb))
+
+### 🩹 Fixes
+
+- **skills-catalog:** keep checks.md in the tlc-spec-lean 1.2.0 bump ([afaccaebd](https://github.com/tech-leads-club/agent-skills/commit/afaccaebd))
+
+### ❤️ Thank You
+
+- Waldemar Neto @waldemarnt
+
 ## 0.17.12 (2026-10-14)
 
 ### 🩹 Fixes
