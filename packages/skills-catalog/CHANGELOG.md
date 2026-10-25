@@ -1,3 +1,21 @@
+## 0.17.14 (2026-10-25)
+
+### 🚀 Features
+
+- **skills-catalog:** bump tlc-plan and tlc-implement to 1.0.0 ([3be478be8](https://github.com/tech-leads-club/agent-skills/commit/3be478be8))
+- **skills-catalog:** bump tlc-spec-lean to 2.0.0 ([2fca1d197](https://github.com/tech-leads-club/agent-skills/commit/2fca1d197))
+
+### 🩹 Fixes
+
+- **skills-catalog:** close files in tlc-spec-lean scripts ([783f80563](https://github.com/tech-leads-club/agent-skills/commit/783f80563))
+- **tlc-spec-driven:** make the batching example match its own rule ([#163](https://github.com/tech-leads-club/agent-skills/issues/163))
+
+### ❤️ Thank You
+
+- Antonio Fulgêncio @antoniofulg
+- Claude Opus 5 (1M context)
+- Waldemar Neto @waldemarnt
+
 ## 0.17.13 (2026-10-16)
 
 ### 🚀 Features
