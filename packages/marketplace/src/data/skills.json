@@ -2012,7 +2012,7 @@
           "verify-screens.md",
           "verify.md"
         ],
-        "lastModified": "2026-09-09",
+        "lastModified": "2026-10-25",
         "version": "1.0.0",
         "scriptRuntimes": [
           "Python"
@@ -2033,7 +2033,7 @@
         "referenceFiles": [
           "plan.md"
         ],
-        "lastModified": "2026-09-10",
+        "lastModified": "2026-10-25",
         "version": "1.0.0",
         "scriptRuntimes": [
           "Python"
