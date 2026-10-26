@@ -1,3 +1,19 @@
+## 0.17.15 (2026-10-26)
+
+### 🚀 Features
+
+- **skills-catalog:** keep lean-skill approvals and screen verdicts after compaction ([eec04107f](https://github.com/tech-leads-club/agent-skills/commit/eec04107f))
+- **skills-catalog:** bump tlc-spec-driven to 4.0.0 ([ef2672d67](https://github.com/tech-leads-club/agent-skills/commit/ef2672d67))
+
+### 🩹 Fixes
+
+- **skills-catalog:** keep tlc-spec-driven approvals across compaction ([65ca25bf3](https://github.com/tech-leads-club/agent-skills/commit/65ca25bf3))
+- **skills-catalog:** describe tlc-spec-driven by what the user feels ([4e5db8a3a](https://github.com/tech-leads-club/agent-skills/commit/4e5db8a3a))
+
+### ❤️ Thank You
+
+- Waldemar Neto @waldemarnt
+
 ## 0.17.14 (2026-10-25)
 
 ### 🚀 Features
